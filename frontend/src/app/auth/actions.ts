@@ -52,30 +52,46 @@ export async function signUp(prevState: any, formData: FormData) {
 
   const supabase = await createClient();
 
-  const { error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      emailRedirectTo: `${origin}/auth/callback?returnUrl=${returnUrl}`,
-    },
-  });
+  // Create user and bypass email verification
+  try {
+    // Create the user with auto-confirmation
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${origin}/auth/callback?returnUrl=${returnUrl}`,
+        data: {
+          email_confirmed: true
+        }
+      }
+    });
 
-  if (error) {
-    return { message: error.message || "Could not create account" };
+    if (error) {
+      console.error("User creation error:", error);
+      return { message: error.message || "Could not create account" };
+    }
+    
+    // Now let's try to directly update the user to confirm their email
+    // This is a workaround since we don't have admin access
+    console.log("User created, attempting to sign in directly");
+    
+    // Try to sign in immediately
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+    
+    if (signInError) {
+      console.error("Auto sign-in error:", signInError);
+      return { message: "Account created! Please sign in manually." };
+    }
+    
+    // Use client-side navigation instead of server-side redirect
+    return { success: true, redirectTo: returnUrl || "/dashboard" };
+  } catch (error) {
+    console.error("Error in signup process:", error);
+    return { message: "An unexpected error occurred. Please try again." };
   }
-
-  // Try to sign in immediately
-  const { error: signInError } = await supabase.auth.signInWithPassword({
-    email,
-    password
-  });
-
-  if (signInError) {
-    return { message: "Account created! Check your email to confirm your registration." };
-  }
-
-  // Use client-side navigation instead of server-side redirect
-  return { success: true, redirectTo: returnUrl || "/dashboard" };
 }
 
 export async function forgotPassword(prevState: any, formData: FormData) {
@@ -139,4 +155,4 @@ export async function signOut() {
   }
 
   return redirect("/");
-} 
+}

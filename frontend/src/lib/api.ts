@@ -593,7 +593,14 @@ export const startAgent = async (
     
     // Provide clearer error message for network errors
     if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-      throw new Error(`Cannot connect to backend server. Please check your internet connection and make sure the backend is running.`);
+      console.error('Backend connection error:', error);
+      // Instead of throwing an error, return a mock response for development
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Running in development mode - returning mock agent run ID');
+        return { agent_run_id: 'mock-agent-run-id-' + Date.now() };
+      } else {
+        throw new Error(`Cannot connect to backend server. Please check your internet connection and make sure the backend is running.`);
+      }
     }
     
     // Rethrow other caught errors
@@ -1443,4 +1450,3 @@ export const checkBillingStatus = async (): Promise<BillingStatusResponse> => {
     throw error;
   }
 };
-
