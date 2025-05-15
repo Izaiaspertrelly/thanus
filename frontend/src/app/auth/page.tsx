@@ -5,6 +5,7 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { Input } from "@/components/ui/input";
 import GoogleSignIn from "@/components/GoogleSignIn";
 import { FlickeringGrid } from "@/components/home/ui/flickering-grid";
+import { ScatteredParticles } from "@/components/home/ui/scattered-particles";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useScroll } from "motion/react";
@@ -51,8 +52,8 @@ function LoginContent() {
     message.includes("success")
   );
   
-  // Registration success state
-  const [registrationSuccess, setRegistrationSuccess] = useState(!!isSuccessMessage);
+  // Registration success state - disabled to allow immediate access
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const [registrationEmail, setRegistrationEmail] = useState("");
   
   // Estado de recuperação de senha
@@ -67,11 +68,10 @@ function LoginContent() {
     setMounted(true);
   }, []);
 
-  // Set registration success state from URL params
+  // Disable registration success state from URL params
   useEffect(() => {
-    if (isSuccessMessage) {
-      setRegistrationSuccess(true);
-    }
+    // We're disabling the email verification requirement
+    // so we don't set registrationSuccess to true
   }, [isSuccessMessage]);
 
   // Detect when scrolling is active to reduce animation complexity
@@ -137,24 +137,10 @@ function LoginContent() {
       return null; // Return null to prevent normal form action completion
     }
     
-    // Check if registration was successful but needs email verification
-    if (result && typeof result === 'object' && 'message' in result) {
-      const resultMessage = result.message as string;
-      if (resultMessage.includes("Check your email")) {
-        setRegistrationSuccess(true);
-        
-        // Update URL without causing a refresh
-        const params = new URLSearchParams(window.location.search);
-        params.set('message', resultMessage);
-        
-        const newUrl = 
-          window.location.pathname + 
-          (params.toString() ? '?' + params.toString() : '');
-          
-        window.history.pushState({ path: newUrl }, '', newUrl);
-        
-        return result;
-      }
+    // Skip email verification check - we want users to access immediately
+    if (result && typeof result === 'object' && 'success' in result && result.success) {
+      // Just return the result and let the redirect happen
+      return result;
     }
     
     return result;
@@ -270,6 +256,8 @@ function LoginContent() {
 
   return (
     <main className="flex flex-col items-center justify-center min-h-screen w-full bg-black">
+      {/* Scattered particles that come together on input focus */}
+      <ScatteredParticles />
       <div className="w-full">
         {/* Hero-like header with flickering grid */}
         <section className="w-full relative overflow-hidden">
